@@ -246,6 +246,15 @@ const MODEL_URL = "/models";
 
 let mode="register", modelsLoaded=false, stream=null;
 
+async function parseResponse(r) {
+  const text = await r.text();
+  try {
+    return JSON.parse(text);
+  } catch (e) {
+    return { success: false, message: text || "Unexpected server response" };
+  }
+}
+
 function setMode(m){
   mode=m;
   regBtn.className = m==="register"?"active":"inactive";
@@ -283,23 +292,48 @@ window.onload = async ()=>{
 };
 
 async function sendOtp(){
-  const r=await fetch(`${API}/send-otp`,{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({email:email.value})
-  });
-  output.textContent=JSON.stringify(await r.json(),null,2);
+  try {
+    sendOtpBtn.disabled = true;
+    output.textContent = "Sending OTP...";
+    const r=await fetch(`${API}/send-otp`,{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({email:email.value})
+    });
+    const data = await parseResponse(r);
+    output.textContent=JSON.stringify(data,null,2);
+  } catch (err) {
+    output.textContent = JSON.stringify({
+      success: false,
+      message: "Request failed",
+      error: err.message
+    }, null, 2);
+  } finally {
+    sendOtpBtn.disabled = false;
+  }
 }
 
 async function verifyOtp(){
-  const r=await fetch(`${API}/verify-otp`,{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({email:email.value,otp:otp.value})
-  });
-  const d=await r.json();
-  output.textContent=JSON.stringify(d,null,2);
-  if(d.success) camBtn.classList.remove("hidden");
+  try {
+    verifyOtpBtn.disabled = true;
+    output.textContent = "Verifying OTP...";
+    const r=await fetch(`${API}/verify-otp`,{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({email:email.value,otp:otp.value})
+    });
+    const d=await parseResponse(r);
+    output.textContent=JSON.stringify(d,null,2);
+    if(d.success) camBtn.classList.remove("hidden");
+  } catch (err) {
+    output.textContent = JSON.stringify({
+      success: false,
+      message: "Request failed",
+      error: err.message
+    }, null, 2);
+  } finally {
+    verifyOtpBtn.disabled = false;
+  }
 }
 
 async function openCamera(){
