@@ -255,6 +255,16 @@ async function parseResponse(r) {
   }
 }
 
+async function fetchWithTimeout(url, options, timeoutMs = 20000) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 function setMode(m){
   mode=m;
   regBtn.className = m==="register"?"active":"inactive";
@@ -295,11 +305,11 @@ async function sendOtp(){
   try {
     sendOtpBtn.disabled = true;
     output.textContent = "Sending OTP...";
-    const r=await fetch(`${API}/send-otp`,{
+    const r=await fetchWithTimeout(`${API}/send-otp`,{
       method:"POST",
       headers:{"Content-Type":"application/json"},
       body:JSON.stringify({email:email.value})
-    });
+    }, 20000);
     const data = await parseResponse(r);
     output.textContent=JSON.stringify(data,null,2);
   } catch (err) {
@@ -317,11 +327,11 @@ async function verifyOtp(){
   try {
     verifyOtpBtn.disabled = true;
     output.textContent = "Verifying OTP...";
-    const r=await fetch(`${API}/verify-otp`,{
+    const r=await fetchWithTimeout(`${API}/verify-otp`,{
       method:"POST",
       headers:{"Content-Type":"application/json"},
       body:JSON.stringify({email:email.value,otp:otp.value})
-    });
+    }, 20000);
     const d=await parseResponse(r);
     output.textContent=JSON.stringify(d,null,2);
     if(d.success) camBtn.classList.remove("hidden");
