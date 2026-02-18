@@ -30,7 +30,7 @@ exports.sendOtp = async (req, res) => {
     otpStore.set(normalizedEmail, otp);
     try {
       await transporter.sendMail({
-        from: process.env.EMAIL_USER,
+        from: (process.env.EMAIL_FROM || process.env.EMAIL_USER || "").trim(),
         to: normalizedEmail,
         subject: "Voting OTP",
         text: `Your OTP is ${otp}`
