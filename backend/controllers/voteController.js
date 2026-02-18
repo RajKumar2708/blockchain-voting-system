@@ -41,8 +41,9 @@ exports.getParties = async (req, res) => {
 exports.castVote = async (req, res) => {
   try {
     const { email, partyId } = req.body;
+    const normalizedEmail = (email || "").trim().toLowerCase();
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: normalizedEmail });
 
     if (!user) {
       return res.status(404).json({

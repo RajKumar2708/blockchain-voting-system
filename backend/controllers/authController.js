@@ -1,6 +1,6 @@
 const User = require("../models/User");
 const AllowedVoter = require("../models/AllowedVoter");
-const nodemailer = require("nodemailer");
+const transporter = require("../config/mail");
 const faceapi = require("face-api.js");
 
 const otpStore = new Map();
@@ -9,8 +9,16 @@ const otpStore = new Map();
 exports.sendOtp = async (req, res) => {
   try {
     const { email } = req.body;
+    const normalizedEmail = (email || "").trim().toLowerCase();
 
-    const allowed = await AllowedVoter.findOne({ email });
+    if (!normalizedEmail) {
+      return res.status(400).json({
+        success: false,
+        message: "Email is required"
+      });
+    }
+
+    const allowed = await AllowedVoter.findOne({ email: normalizedEmail });
     if (!allowed) {
       return res.status(403).json({
         success: false,
@@ -19,19 +27,11 @@ exports.sendOtp = async (req, res) => {
     }
 
     const otp = Math.floor(100000 + Math.random() * 900000);
-    otpStore.set(email, otp);
-
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-      }
-    });
+    otpStore.set(normalizedEmail, otp);
 
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
-      to: email,
+      to: normalizedEmail,
       subject: "Voting OTP",
       text: `Your OTP is ${otp}`
     });
@@ -45,18 +45,19 @@ exports.sendOtp = async (req, res) => {
 /* ===================== VERIFY OTP ===================== */
 exports.verifyOtp = async (req, res) => {
   const { email, otp } = req.body;
+  const normalizedEmail = (email || "").trim().toLowerCase();
 
-  if (otpStore.get(email) != otp) {
+  if (otpStore.get(normalizedEmail) != otp) {
     return res.status(400).json({
       success: false,
       message: "Invalid OTP"
     });
   }
 
-  otpStore.delete(email);
+  otpStore.delete(normalizedEmail);
 
   await User.findOneAndUpdate(
-    { email },
+    { email: normalizedEmail },
     {
       otpVerified: true,
       allowedToVote: true
@@ -71,6 +72,7 @@ exports.verifyOtp = async (req, res) => {
 exports.registerFace = async (req, res) => {
   try {
     const { email, descriptor } = req.body;
+    const normalizedEmail = (email || "").trim().toLowerCase();
 
     if (!descriptor || descriptor.length !== 128) {
       return res.status(400).json({
@@ -79,7 +81,7 @@ exports.registerFace = async (req, res) => {
       });
     }
 
-    const existingUser = await User.findOne({ email });
+    const existingUser = await User.findOne({ email: normalizedEmail });
 
     if (existingUser && existingUser.faceRegistered) {
       return res.status(400).json({
@@ -96,7 +98,7 @@ exports.registerFace = async (req, res) => {
     }
 
     await User.findOneAndUpdate(
-      { email },
+      { email: normalizedEmail },
       {
         faceDescriptor: descriptor,
         faceRegistered: true,
@@ -121,6 +123,7 @@ exports.registerFace = async (req, res) => {
 exports.loginWithFace = async (req, res) => {
   try {
     const { email, descriptor } = req.body;
+    const normalizedEmail = (email || "").trim().toLowerCase();
 
     if (!descriptor || descriptor.length !== 128) {
       return res.status(400).json({
@@ -129,7 +132,7 @@ exports.loginWithFace = async (req, res) => {
       });
     }
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: normalizedEmail });
 
     if (!user || !user.faceRegistered) {
       return res.status(403).json({

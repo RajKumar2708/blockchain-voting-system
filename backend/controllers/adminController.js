@@ -165,8 +165,9 @@ exports.resetSystem = async (req, res) => {
 // ADD EMAIL
 exports.addAllowedVoter = async (req, res) => {
   const { email } = req.body;
+  const normalizedEmail = (email || "").trim().toLowerCase();
 
-  if (!email) {
+  if (!normalizedEmail) {
     return res.status(400).json({
       success: false,
       message: "Email required"
@@ -174,7 +175,7 @@ exports.addAllowedVoter = async (req, res) => {
   }
 
   try {
-    const voter = await AllowedVoter.create({ email });
+    const voter = await AllowedVoter.create({ email: normalizedEmail });
     res.json({ success: true, voter });
   } catch (err) {
     res.status(400).json({
