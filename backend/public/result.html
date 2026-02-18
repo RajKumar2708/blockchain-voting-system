@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Election Result Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+
+:root{
+  --bg-a:#020617;
+  --bg-b:#0b1f3a;
+  --bg-c:#08152a;
+  --panel:rgba(255,255,255,0.06);
+  --panel-border:rgba(148,163,184,0.28);
+  --text:#e2e8f0;
+  --muted:#9fb1c9;
+  --header:#dbeafe;
+  --line:rgba(148,163,184,0.22);
+  --shadow:0 16px 34px rgba(2,6,23,0.45);
+  --grad-a:linear-gradient(135deg,#2563eb,#1d4ed8);
+  --grad-b:linear-gradient(135deg,#0891b2,#0e7490);
+  --grad-c:linear-gradient(135deg,#16a34a,#15803d);
+  --pending:#f59e0b;
+  --voted:#16a34a;
+  --accent:#38bdf8;
+}
+
+*{box-sizing:border-box;font-family:"Poppins",sans-serif}
+body{
+  margin:0;
+  background:linear-gradient(140deg,var(--bg-a),var(--bg-b) 55%,var(--bg-c));
+  color:var(--text);
+  min-height:100vh;
+}
+
+.wrap{
+  width:min(1200px,94vw);
+  margin:24px auto;
+}
+
+.topbar{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  margin-bottom:16px;
+}
+
+.title{
+  margin:0;
+  font-size:24px;
+  color:var(--header);
+}
+
+.status-pill{
+  background:rgba(15,23,42,.85);
+  color:#fff;
+  border-radius:999px;
+  padding:8px 14px;
+  font-size:13px;
+  font-weight:700;
+  border:1px solid rgba(148,163,184,.28);
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+}
+
+.spinner{
+  width:14px;
+  height:14px;
+  border-radius:50%;
+  border:2px solid rgba(255,255,255,.25);
+  border-top-color:#fff;
+  animation:spin .8s linear infinite;
+}
+
+.stats{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:14px;
+  margin-bottom:16px;
+}
+
+.card{
+  border-radius:16px;
+  color:#fff;
+  padding:16px;
+  box-shadow:var(--shadow);
+  transition:transform .25s ease, box-shadow .25s ease;
+}
+
+.card:hover{
+  transform:translateY(-3px);
+  box-shadow:0 22px 38px rgba(2,6,23,0.5);
+}
+
+.card h3{
+  margin:0 0 8px;
+  font-size:13px;
+  font-weight:600;
+  opacity:0.92;
+}
+
+.card strong{
+  font-size:30px;
+  line-height:1.1;
+}
+
+.card.a{background:var(--grad-a)}
+.card.b{background:var(--grad-b)}
+.card.c{background:var(--grad-c)}
+
+.charts{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:14px;
+  margin-bottom:16px;
+}
+
+.panel{
+  background:var(--panel);
+  border:1px solid var(--panel-border);
+  border-radius:16px;
+  box-shadow:var(--shadow);
+  padding:16px;
+  backdrop-filter:blur(12px);
+}
+
+.panel h3{
+  margin:0 0 12px;
+  font-size:16px;
+  color:#dbeafe;
+}
+
+.chart-box{
+  min-height:260px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:rgba(15,23,42,.45);
+  padding:12px;
+}
+
+.chart-box canvas{
+  width:100% !important;
+  height:230px !important;
+}
+
+.results-list{
+  margin-top:12px;
+}
+
+.results-list .result{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:10px 12px;
+  margin-top:8px;
+  border:1px solid var(--line);
+  border-radius:10px;
+  background:rgba(15,23,42,.62);
+  color:#dbeafe;
+}
+
+.table-wrap{
+  background:var(--panel);
+  border:1px solid var(--panel-border);
+  border-radius:16px;
+  box-shadow:var(--shadow);
+  overflow:hidden;
+  backdrop-filter:blur(12px);
+}
+
+table{
+  width:100%;
+  border-collapse:separate;
+  border-spacing:0;
+}
+
+thead th{
+  text-align:left;
+  font-size:13px;
+  color:#e2e8f0;
+  background:rgba(30,41,59,.9);
+  border-bottom:1px solid var(--line);
+  padding:12px 14px;
+}
+
+tbody td{
+  padding:12px 14px;
+  border-bottom:1px solid rgba(148,163,184,.13);
+  font-size:14px;
+  vertical-align:middle;
+  color:#dbeafe;
+}
+
+tbody tr:last-child td{border-bottom:none}
+
+.tx{
+  font-family:Consolas, "Courier New", monospace;
+  max-width:220px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  color:#7dd3fc;
+  display:inline-block;
+}
+
+.tx-cell{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  min-width:0;
+}
+
+.tx-link{
+  border:none;
+  background:transparent;
+  padding:0;
+  text-align:left;
+  color:#7dd3fc;
+  cursor:pointer;
+}
+
+.tx-link:hover{
+  text-decoration:underline;
+}
+
+.copy-btn{
+  border:none;
+  background:rgba(148,163,184,.22);
+  color:#e2e8f0;
+  border-radius:8px;
+  font-size:12px;
+  padding:5px 9px;
+  cursor:pointer;
+  flex-shrink:0;
+}
+
+.copy-btn:hover{
+  background:rgba(148,163,184,.35);
+}
+
+.badge{
+  display:inline-flex;
+  align-items:center;
+  border-radius:999px;
+  padding:4px 10px;
+  font-size:12px;
+  font-weight:700;
+  color:#fff;
+}
+
+.badge.voted{background:var(--voted)}
+.badge.pending{background:var(--pending)}
+
+.actions{
+  margin-top:14px;
+  display:flex;
+  justify-content:flex-end;
+}
+
+button{
+  border:none;
+  border-radius:12px;
+  background:linear-gradient(135deg,#2563eb,#1d4ed8);
+  color:#fff;
+  padding:10px 16px;
+  font-weight:700;
+  cursor:pointer;
+  transition:transform .25s ease, box-shadow .25s ease;
+}
+
+button:hover{
+  transform:translateY(-1px);
+  box-shadow:0 12px 24px rgba(37,99,235,.3);
+}
+
+.modal-backdrop{
+  position:fixed;
+  inset:0;
+  background:rgba(15,23,42,0.65);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:999;
+  padding:16px;
+}
+
+.modal{
+  width:min(680px,100%);
+  background:#0f172a;
+  border-radius:14px;
+  border:1px solid var(--panel-border);
+  box-shadow:0 24px 60px rgba(15,23,42,0.22);
+  overflow:hidden;
+}
+
+.modal-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:14px 16px;
+  background:rgba(15,23,42,.82);
+  border-bottom:1px solid var(--line);
+}
+
+.modal-title{
+  margin:0;
+  font-size:16px;
+  color:#e2e8f0;
+}
+
+.close-btn{
+  background:rgba(148,163,184,.2);
+  color:#e2e8f0;
+  padding:6px 10px;
+  border-radius:8px;
+}
+
+.modal-body{
+  padding:16px;
+  display:grid;
+  gap:10px;
+}
+
+.detail-row{
+  display:grid;
+  grid-template-columns:180px 1fr;
+  gap:10px;
+  align-items:start;
+}
+
+.detail-row .label{
+  font-size:13px;
+  color:var(--muted);
+}
+
+.detail-row .value{
+  font-size:14px;
+  color:#dbeafe;
+  word-break:break-all;
+  font-family:Consolas, "Courier New", monospace;
+}
+
+.status-ok{
+  color:#22c55e;
+  font-weight:700;
+}
+
+.status-fail{
+  color:#f87171;
+  font-weight:700;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width:1024px){
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .charts{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+
+@media (max-width:900px){
+  .charts{grid-template-columns:1fr}
+}
+
+@media (max-width:700px){
+  .stats{grid-template-columns:1fr}
+  .table-wrap{overflow-x:auto}
+  table{min-width:760px}
+  .detail-row{grid-template-columns:1fr}
+}
+</style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <h2 class="title">Election Results Dashboard</h2>
+      <div id="status" class="status-pill"><span class="spinner" aria-hidden="true"></span> Status: Loading</div>
+    </div>
+
+    <section class="stats">
+      <div class="card a">
+        <h3>Total Voters</h3>
+        <strong id="totalVoters">0</strong>
+      </div>
+      <div class="card b">
+        <h3>Votes Cast</h3>
+        <strong id="votesCast">0</strong>
+      </div>
+      <div class="card c">
+        <h3>Turnout Percentage</h3>
+        <strong id="turnoutPct">0%</strong>
+      </div>
+    </section>
+
+    <section class="charts">
+      <div class="panel">
+        <h3>Election Results (Pie Chart)</h3>
+        <div class="chart-box">
+          <canvas id="pieChart"></canvas>
+        </div>
+        <div id="results" class="results-list">Loading results...</div>
+      </div>
+      <div class="panel">
+        <h3>Votes Over Time (Line Chart)</h3>
+        <div class="chart-box">
+          <canvas id="lineChart"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <section class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Voter Email</th>
+            <th>Voted Time</th>
+            <th>Status</th>
+            <th>Transaction Hash</th>
+          </tr>
+        </thead>
+        <tbody id="logs">
+          <tr><td colspan="4">Loading logs...</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <div class="actions">
+      <button onclick="logout()">Logout</button>
+    </div>
+  </div>
+
+  <div id="txModalBackdrop" class="modal-backdrop" onclick="closeTxModal(event)">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="txModalTitle">
+      <div class="modal-head">
+        <h3 id="txModalTitle" class="modal-title">Transaction Details</h3>
+        <button type="button" class="close-btn" onclick="closeTxModal()">Close</button>
+      </div>
+      <div class="modal-body">
+        <div class="detail-row">
+          <div class="label">Full Transaction Hash</div>
+          <div id="modalHash" class="value">-</div>
+        </div>
+        <div class="detail-row">
+          <div class="label">Block Number</div>
+          <div id="modalBlock" class="value">-</div>
+        </div>
+        <div class="detail-row">
+          <div class="label">Gas Used</div>
+          <div id="modalGas" class="value">-</div>
+        </div>
+        <div class="detail-row">
+          <div class="label">Transaction Status</div>
+          <div id="modalStatus" class="value">-</div>
+        </div>
+        <div class="detail-row">
+          <div class="label">Network</div>
+          <div class="value">Hardhat Local</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+let pieChartInstance = null;
+let lineChartInstance = null;
+
+function truncateHash(hash){
+  if (!hash || hash === "N/A") return "N/A";
+  if (hash.length <= 14) return hash;
+  return `${hash.slice(0, 6)}...${hash.slice(-4)}`;
+}
+
+async function copyHash(hash){
+  if (!hash || hash === "N/A") return;
+  try {
+    await navigator.clipboard.writeText(hash);
+  } catch (e) {}
+}
+
+async function hardhatRpc(method, params) {
+  const res = await fetch("http://127.0.0.1:8545", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      jsonrpc: "2.0",
+      id: Date.now(),
+      method,
+      params
+    })
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message || "RPC error");
+  return data.result;
+}
+
+function hexToNumber(hex) {
+  if (!hex) return 0;
+  return parseInt(hex, 16);
+}
+
+function renderCharts(resultsData, voteLogs) {
+  const pieCanvas = document.getElementById("pieChart");
+  const lineCanvas = document.getElementById("lineChart");
+  if (!pieCanvas || !lineCanvas || typeof Chart === "undefined") return;
+
+  const pieLabels = (resultsData || []).map(r => r.name);
+  const pieVotes = (resultsData || []).map(r => Number(r.votes || 0));
+
+  if (pieChartInstance) pieChartInstance.destroy();
+  pieChartInstance = new Chart(pieCanvas.getContext("2d"), {
+    type: "pie",
+    data: {
+      labels: pieLabels,
+      datasets: [{
+        data: pieVotes,
+        backgroundColor: ["#2563eb", "#14b8a6", "#22c55e", "#f59e0b", "#ef4444"],
+        borderColor: "rgba(15,23,42,0.95)",
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          labels: { color: "#dbeafe" }
+        }
+      }
+    }
+  });
+
+  const votedEntries = (voteLogs || [])
+    .filter(l => l.voteTxHash && l.votedAt)
+    .sort((a, b) => new Date(a.votedAt) - new Date(b.votedAt));
+
+  const lineLabels = [];
+  const lineValues = [];
+  let cumulativeVotes = 0;
+
+  votedEntries.forEach(entry => {
+    cumulativeVotes += 1;
+    lineLabels.push(new Date(entry.votedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }));
+    lineValues.push(cumulativeVotes);
+  });
+
+  if (lineLabels.length === 0) {
+    lineLabels.push("No votes");
+    lineValues.push(0);
+  }
+
+  if (lineChartInstance) lineChartInstance.destroy();
+  lineChartInstance = new Chart(lineCanvas.getContext("2d"), {
+    type: "line",
+    data: {
+      labels: lineLabels,
+      datasets: [{
+        label: "Votes",
+        data: lineValues,
+        borderColor: "#38bdf8",
+        backgroundColor: "rgba(56,189,248,0.2)",
+        pointBackgroundColor: "#22d3ee",
+        pointRadius: 3,
+        pointHoverRadius: 4,
+        tension: 0.35,
+        fill: true
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: {
+          ticks: { color: "#cbd5e1" },
+          grid: { color: "rgba(148,163,184,0.15)" }
+        },
+        y: {
+          beginAtZero: true,
+          ticks: { color: "#cbd5e1", precision: 0 },
+          grid: { color: "rgba(148,163,184,0.15)" }
+        }
+      },
+      plugins: {
+        legend: {
+          labels: { color: "#dbeafe" }
+        }
+      }
+    }
+  });
+}
+
+async function openTxModal(hash) {
+  if (!hash || hash === "N/A") return;
+
+  modalHash.textContent = hash;
+  modalBlock.textContent = "Loading...";
+  modalGas.textContent = "Loading...";
+  modalStatus.textContent = "Loading...";
+  txModalBackdrop.style.display = "flex";
+
+  try {
+    const receipt = await hardhatRpc("eth_getTransactionReceipt", [hash]);
+    if (!receipt) {
+      modalBlock.textContent = "Pending";
+      modalGas.textContent = "Pending";
+      modalStatus.textContent = "Pending";
+      return;
+    }
+
+    const blockNo = hexToNumber(receipt.blockNumber);
+    const gasUsed = hexToNumber(receipt.gasUsed);
+    const ok = receipt.status === "0x1";
+
+    modalBlock.textContent = String(blockNo);
+    modalGas.textContent = String(gasUsed);
+    modalStatus.innerHTML = ok
+      ? '<span class="status-ok">Success</span>'
+      : '<span class="status-fail">Failed</span>';
+  } catch (err) {
+    modalBlock.textContent = "Unavailable";
+    modalGas.textContent = "Unavailable";
+    modalStatus.textContent = "Unavailable";
+  }
+}
+
+function closeTxModal(event) {
+  if (event && event.target && event.target !== txModalBackdrop) return;
+  txModalBackdrop.style.display = "none";
+}
+
+async function loadResults(){
+  try {
+    status.innerHTML = '<span class="spinner" aria-hidden="true"></span> Status: Loading';
+
+    const statusRes = await fetch("/api/admin/status");
+    const statusData = await statusRes.json();
+    status.textContent = `Status: ${statusData.active ? "ACTIVE" : "INACTIVE"}`;
+
+    const allowedRes = await fetch("/api/admin/allowed-voters");
+    const allowedData = await allowedRes.json();
+    const allowedVotersCount = Array.isArray(allowedData) ? allowedData.length : 0;
+
+    const res = await fetch("/api/vote/results");
+    const data = await res.json();
+
+    results.innerHTML = "";
+
+    data.results.forEach(r=>{
+      results.innerHTML += `
+        <div class="result">
+          <span>${r.name}</span>
+          <strong>${r.votes}</strong>
+        </div>
+      `;
+    });
+
+    logs.innerHTML = "";
+    const voteLogs = data.logs || [];
+    const votesCastCount = voteLogs.filter(l => l.voteTxHash).length;
+    const totalVotersCount = allowedVotersCount;
+    const turnout = totalVotersCount > 0 ? ((votesCastCount / totalVotersCount) * 100).toFixed(1) : "0.0";
+
+    totalVoters.textContent = totalVotersCount;
+    votesCast.textContent = votesCastCount;
+    turnoutPct.textContent = `${turnout}%`;
+
+    renderCharts(data.results, voteLogs);
+
+    if (voteLogs.length > 0) {
+      voteLogs.forEach(l => {
+        const time = l.votedAt ? new Date(l.votedAt).toLocaleString() : "Unknown";
+        const fullHash = l.voteTxHash || "N/A";
+        const shortHash = truncateHash(fullHash);
+        const statusClass = fullHash !== "N/A" ? "voted" : "pending";
+        const statusText = fullHash !== "N/A" ? "Voted" : "Pending";
+        const txHtml = fullHash !== "N/A"
+          ? `
+            <div class="tx-cell">
+              <button
+                type="button"
+                class="tx tx-link"
+                title="${fullHash}"
+                onclick="openTxModal('${fullHash}')"
+              >${shortHash}</button>
+              <button class="copy-btn" type="button" onclick="copyHash('${fullHash}')">Copy</button>
+            </div>
+          `
+          : `<span class="tx">N/A</span>`;
+
+        logs.innerHTML += `
+          <tr>
+            <td>${l.email}</td>
+            <td>${time}</td>
+            <td><span class="badge ${statusClass}">${statusText}</span></td>
+            <td>${txHtml}</td>
+          </tr>
+        `;
+      });
+    } else {
+      logs.innerHTML = `<tr><td colspan="4">No votes yet.</td></tr>`;
+    }
+  } catch (e) {
+    status.textContent = "Status: Unavailable";
+  }
+}
+
+function logout(){
+  localStorage.removeItem("email");
+  window.location.href="/auth.html";
+}
+
+window.addEventListener("DOMContentLoaded", () => {
+  loadResults();
+  setInterval(loadResults, 3000);
+});
+</script>
+</body>
+</html>

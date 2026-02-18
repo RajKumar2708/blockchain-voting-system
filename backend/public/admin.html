@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Admin Panel</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+
+    :root{
+      --bg-a:#020617;
+      --bg-b:#0b1f3a;
+      --bg-c:#071426;
+      --card:rgba(255,255,255,0.06);
+      --card-border:rgba(148,163,184,0.3);
+      --text:#e2e8f0;
+      --muted:#95a7bf;
+      --blue:#2563eb;
+      --green:#16a34a;
+      --red:#dc2626;
+      --teal:#14b8a6;
+      --shadow:0 16px 34px rgba(2,6,23,0.45);
+      --radius:16px;
+    }
+
+    * {
+      box-sizing: border-box;
+      font-family: "Poppins", sans-serif;
+    }
+
+    body {
+      margin: 0;
+      background: linear-gradient(140deg, var(--bg-a), var(--bg-b) 55%, var(--bg-c));
+      color: var(--text);
+      min-height: 100vh;
+      padding: 22px;
+    }
+
+    .container {
+      width: min(1180px, 100%);
+      margin: 0 auto;
+      display: grid;
+      gap: 16px;
+    }
+
+    .hero {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      backdrop-filter: blur(12px);
+      box-shadow: var(--shadow);
+      border-radius: var(--radius);
+      padding: 20px;
+      text-align: center;
+      animation: enter .6s ease-out both;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 1.65rem;
+      font-weight: 700;
+      color: #dbeafe;
+    }
+
+    .sub {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: .92rem;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+
+    .section {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      backdrop-filter: blur(12px);
+      box-shadow: var(--shadow);
+      padding: 18px;
+      transition: transform .25s ease, box-shadow .25s ease;
+      animation: enter .65s ease-out both;
+    }
+
+    .section:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 22px 34px rgba(2, 6, 23, 0.5);
+    }
+
+    h3 {
+      margin: 0 0 12px;
+      font-size: 1rem;
+      color: #c7d2fe;
+      letter-spacing: .15px;
+    }
+
+    input {
+      width: 100%;
+      padding: 11px 12px;
+      margin-top: 10px;
+      border-radius: 12px;
+      border: 1px solid rgba(148,163,184,0.35);
+      background: rgba(15,23,42,0.58);
+      color: #fff;
+      outline: none;
+      transition: border-color .25s ease, box-shadow .25s ease;
+    }
+
+    input::placeholder {
+      color: #9db0c8;
+    }
+
+    input:focus {
+      border-color: #2dd4bf;
+      box-shadow: 0 0 0 3px rgba(20,184,166,.35);
+    }
+
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    button {
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      border-radius: 12px;
+      padding: 11px 14px;
+      color: #fff;
+      transition: transform .25s ease, box-shadow .25s ease, filter .25s ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.04);
+    }
+
+    .primary {
+      background: linear-gradient(135deg, var(--blue), #1d4ed8);
+      box-shadow: 0 12px 22px rgba(37,99,235,.28);
+      flex: 1;
+    }
+
+    .success {
+      background: linear-gradient(135deg, var(--green), #15803d);
+      box-shadow: 0 12px 22px rgba(22,163,74,.26);
+      flex: 1;
+    }
+
+    .danger {
+      background: linear-gradient(135deg, var(--red), #b91c1c);
+      box-shadow: 0 12px 22px rgba(220,38,38,.24);
+      flex: 1;
+    }
+
+    .pulse {
+      animation: pulse 2.2s ease-in-out infinite;
+    }
+
+    .email-box {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      background: rgba(15,23,42,.62);
+      border: 1px solid rgba(148,163,184,.35);
+      padding: 10px;
+      border-radius: 12px;
+      margin-top: 10px;
+      font-size: 13px;
+      transition: transform .2s ease, box-shadow .2s ease;
+      overflow: hidden;
+    }
+
+    .email-box:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 22px rgba(2,6,23,.34);
+    }
+
+    .entity-text {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      padding-right: 8px;
+    }
+
+    .actions-inline {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .remove-btn {
+      background: linear-gradient(135deg, var(--red), #b91c1c);
+      border: none;
+      color: white;
+      padding: 6px 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      min-width: 56px;
+    }
+
+    .edit-btn {
+      background: linear-gradient(135deg, var(--blue), #1d4ed8);
+    }
+
+    .status-box {
+      margin-top: 12px;
+      padding: 14px;
+      border-radius: 12px;
+      border: 1px solid rgba(45,212,191,.38);
+      background: rgba(13, 59, 78, 0.35);
+      color: #ccfbf1;
+      font-size: 13px;
+      font-weight: 600;
+      white-space: pre-wrap;
+    }
+
+    pre {
+      background: rgba(15,23,42,.62);
+      margin-top: 15px;
+      padding: 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      border: 1px solid rgba(148,163,184,.3);
+      overflow-x: auto;
+      color: #dbeafe;
+    }
+
+    @keyframes enter {
+      from {opacity: 0; transform: translateY(16px);}
+      to {opacity: 1; transform: translateY(0);}
+    }
+
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 rgba(22,163,74,0.2), 0 12px 22px rgba(22,163,74,.26); }
+      50% { box-shadow: 0 0 0 8px rgba(22,163,74,0), 0 16px 26px rgba(22,163,74,.34); }
+    }
+
+    @media (min-width: 768px) {
+      .grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (min-width: 1120px) {
+      .grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 600px) {
+      body {
+        padding: 14px;
+      }
+      .btn-row button {
+        width: 100%;
+        flex: 1 1 100%;
+      }
+      .email-box {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .entity-text {
+        white-space: normal;
+      }
+      .actions-inline {
+        justify-content: flex-end;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="hero">
+      <h2>Admin Panel</h2>
+      <p class="sub">Manage voters, parties, and election lifecycle</p>
+    </div>
+
+    <div class="grid">
+      <section class="section">
+        <h3>Allow Voter</h3>
+        <input id="voterEmail" placeholder="Enter voter email" />
+        <div class="btn-row">
+          <button class="primary" onclick="allowVoter()">Allow Voter</button>
+        </div>
+        <div id="voterList"></div>
+      </section>
+
+      <section class="section">
+        <h3>Create Party</h3>
+        <input id="partyName" placeholder="Party Name" />
+        <input id="leaderName" placeholder="Leader Name" />
+        <div class="btn-row">
+          <button class="primary" onclick="saveParty()">Save Party</button>
+          <button class="danger" onclick="cancelEdit()">Cancel Edit</button>
+        </div>
+      </section>
+
+      <section class="section">
+        <h3>Manage Parties</h3>
+        <div id="partyList"></div>
+      </section>
+
+      <section class="section">
+        <h3>Election Control</h3>
+        <div class="btn-row">
+          <button class="success pulse" onclick="startElection()">Start Election</button>
+          <button class="danger" onclick="endElection()">End Election</button>
+          <button class="danger" onclick="resetSystem()">Reset System</button>
+        </div>
+        <div id="statusBox" class="status-box">Election status: loading...</div>
+      </section>
+    </div>
+
+    <pre id="output">Waiting for action...</pre>
+  </div>
+
+  <script>
+    const API = "/api/admin";
+    let editingPartyId = null;
+
+    async function allowVoter() {
+      const email = voterEmail.value;
+
+      const res = await fetch(`${API}/allow-voter`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email })
+      });
+
+      output.textContent = JSON.stringify(await res.json(), null, 2);
+      voterEmail.value = "";
+      loadVoters();
+    }
+
+    async function loadVoters() {
+      const res = await fetch(`${API}/allowed-voters`);
+      const data = await res.json();
+
+      voterList.innerHTML = "";
+      data.forEach(v => {
+        voterList.innerHTML += `
+          <div class="email-box">
+            <span class="entity-text">${v.email}</span>
+            <div class="actions-inline">
+              <button class="remove-btn" onclick="removeVoter('${v._id}')">Remove</button>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    async function removeVoter(id) {
+      await fetch(`${API}/remove-voter/${id}`, { method: "DELETE" });
+      loadVoters();
+    }
+
+async function saveParty() {
+  const payload = {
+    name: partyName.value,
+    leader: leaderName.value
+  };
+
+  const url = editingPartyId
+    ? `${API}/party/${editingPartyId}`
+    : `${API}/party`;
+  const method = editingPartyId ? "PUT" : "POST";
+
+  const res = await fetch(url, {
+    method,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+
+  output.textContent = JSON.stringify(await res.json(), null, 2);
+  partyName.value = "";
+  leaderName.value = "";
+  editingPartyId = null;
+  loadParties();
+}
+
+function editParty(id, name, leader) {
+  editingPartyId = id;
+  partyName.value = name;
+  leaderName.value = leader;
+}
+
+function cancelEdit() {
+  editingPartyId = null;
+  partyName.value = "";
+  leaderName.value = "";
+}
+
+
+    async function startElection() {
+      const res = await fetch(`${API}/start`, { method: "POST" });
+      output.textContent = JSON.stringify(await res.json(), null, 2);
+      loadStatus();
+    }
+
+    async function endElection() {
+      const res = await fetch(`${API}/end`, { method: "POST" });
+      output.textContent = JSON.stringify(await res.json(), null, 2);
+      loadStatus();
+    }
+
+    loadVoters();
+
+async function loadParties() {
+  const res = await fetch(`${API}/parties`);
+  const parties = await res.json();
+
+  partyList.innerHTML = "";
+
+  parties.forEach(p => {
+    partyList.innerHTML += `
+      <div class="email-box">
+        <span class="entity-text">${p.name} - ${p.leader}</span>
+        <div class="actions-inline">
+          <button class="remove-btn edit-btn" onclick="editParty('${p._id}', '${p.name}', '${p.leader}')">Edit</button>
+          <button class="remove-btn" onclick="deleteParty('${p._id}')">Delete</button>
+        </div>
+      </div>
+    `;
+  });
+}
+
+async function deleteParty(id) {
+  await fetch(`${API}/party/${id}`, { method: "DELETE" });
+  loadParties();
+}
+loadParties();
+loadStatus();
+
+async function loadStatus() {
+  const res = await fetch(`${API}/status`);
+  const data = await res.json();
+  statusBox.textContent = `Election status: ${data.active ? "ACTIVE" : "INACTIVE"}`;
+}
+
+async function resetSystem() {
+  if (!confirm("This will delete parties, allowed voters, and reset all users. Continue?")) {
+    return;
+  }
+
+  const res = await fetch(`${API}/reset`, { method: "POST" });
+  output.textContent = JSON.stringify(await res.json(), null, 2);
+  loadVoters();
+  loadParties();
+  loadStatus();
+}
+
+  </script>
+</body>
+</html>
+

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Face Verification</title>
+
+  <!-- ✅ FACE-API CDN (BROWSER READY) -->
+  <script defer src="https://unpkg.com/face-api.js@0.22.2/dist/face-api.min.js"></script>
+
+  <!-- Your script -->
+  <script defer src="face.js"></script>
+</head>
+
+<body>
+  <h2>Face Verification</h2>
+
+  <input type="email" id="email" placeholder="Enter email" />
+  <br><br>
+
+  <video id="video" width="320" height="240" autoplay muted></video>
+  <br><br>
+
+  <button onclick="registerFace()">Register Face</button>
+  <button onclick="verifyFace()">Verify Face</button>
+
+  <p id="status"></p>
+</body>
+</html>

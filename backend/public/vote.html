@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Vote</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body{
+  background:#020617;
+  color:white;
+  font-family:Arial;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  min-height:100vh;
+}
+.box{
+  width:380px;
+  background:#020617;
+  padding:24px;
+  border-radius:12px;
+  box-shadow:0 0 30px black;
+}
+h2{
+  text-align:center;
+  margin-bottom:10px;
+}
+button{
+  width:100%;
+  padding:12px;
+  margin-top:10px;
+  border:none;
+  border-radius:6px;
+  background:#2563eb;
+  color:white;
+  font-weight:bold;
+  cursor:pointer;
+}
+button:hover{
+  background:#1d4ed8;
+}
+.message{
+  margin-top:12px;
+  font-size:14px;
+  text-align:center;
+}
+</style>
+</head>
+
+<body>
+<div class="box">
+  <h2>Cast Your Vote</h2>
+  <div id="status" class="message"></div>
+  <div id="partyList">Loading parties...</div>
+  <div id="msg" class="message"></div>
+</div>
+
+<script>
+/* ===== AUTH CHECK ===== */
+const email = localStorage.getItem("email");
+if(!email){
+  alert("Please login first");
+  window.location.href = "/auth.html";
+}
+
+/* ===== ELECTION STATUS ===== */
+async function loadStatus(){
+  const res = await fetch("/api/admin/status");
+  const data = await res.json();
+  status.textContent = data.active ? "Election is ACTIVE" : "Election is INACTIVE";
+  return data.active;
+}
+
+/* ===== LOAD PARTIES ===== */
+async function loadParties(){
+  try{
+    const active = await loadStatus();
+    if(!active){
+      partyList.innerHTML = "Voting is closed";
+      return;
+    }
+
+    const res = await fetch("/api/vote/parties");
+    const data = await res.json();
+
+    if(!data.success || data.parties.length === 0){
+      partyList.innerHTML = "No parties available";
+      return;
+    }
+
+    partyList.innerHTML = "";
+
+    data.parties.forEach(p => {
+      const btn = document.createElement("button");
+      btn.textContent = `${p.name} (${p.leader})`;
+      btn.onclick = () => castVote(p._id);
+      partyList.appendChild(btn);
+    });
+
+  }catch(err){
+    partyList.innerHTML = "Failed to load parties";
+  }
+}
+
+/* ===== CAST VOTE ===== */
+async function castVote(partyId){
+  msg.textContent = "Submitting your vote...";
+
+  const res = await fetch("/api/vote/cast",{
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify({ email, partyId })
+  });
+
+  const data = await res.json();
+  msg.textContent = data.message;
+
+  if(data.success){
+    alert("✅ Your vote has been counted");
+    setTimeout(()=>{
+      window.location.href = "/result.html";
+    },1000);
+  }
+}
+
+/* INIT */
+loadParties();
+</script>
+</body>
+</html>

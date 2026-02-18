@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Voting System</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script src="https://unpkg.com/face-api.js@0.22.2/dist/face-api.min.js"></script>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+
+:root{
+  --bg-a:#020617;
+  --bg-b:#0b1f3a;
+  --bg-c:#08152a;
+  --card:rgba(255,255,255,0.06);
+  --card-border:rgba(255,255,255,0.16);
+  --text:#e2e8f0;
+  --muted:#93a4bd;
+  --blue:#2563eb;
+  --teal:#0ea5a4;
+  --green:#16a34a;
+  --focus:rgba(14,165,164,0.45);
+  --radius:16px;
+  --shadow:0 20px 40px rgba(2,6,23,0.45);
+}
+
+*{
+  box-sizing:border-box;
+  font-family:"Poppins",sans-serif;
+}
+
+body{
+  margin:0;
+  color:var(--text);
+  min-height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  background:linear-gradient(140deg,var(--bg-a),var(--bg-b) 52%,var(--bg-c));
+  overflow:hidden;
+}
+
+body::before,
+body::after{
+  content:"";
+  position:fixed;
+  width:44vw;
+  height:44vw;
+  border-radius:50%;
+  filter:blur(6px);
+  opacity:0.26;
+  pointer-events:none;
+  animation:floatBlob 12s ease-in-out infinite alternate;
+}
+
+body::before{
+  left:-12vw;
+  top:-14vw;
+  background:radial-gradient(circle,#38bdf8 0%,transparent 68%);
+}
+
+body::after{
+  right:-14vw;
+  bottom:-14vw;
+  background:radial-gradient(circle,#14b8a6 0%,transparent 70%);
+  animation-delay:1.8s;
+}
+
+.box{
+  width:min(420px,92vw);
+  padding:30px 24px 24px;
+  border-radius:var(--radius);
+  background:var(--card);
+  border:1px solid var(--card-border);
+  backdrop-filter:blur(12px);
+  box-shadow:var(--shadow);
+  position:relative;
+  z-index:1;
+  animation:enterCard .7s ease-out both;
+}
+
+h2{
+  text-align:center;
+  margin:0 0 6px;
+  font-size:1.65rem;
+  font-weight:700;
+  letter-spacing:.3px;
+}
+
+.subtitle{
+  text-align:center;
+  margin:0 0 16px;
+  color:var(--muted);
+  font-size:.88rem;
+}
+
+.toggle{
+  display:flex;
+  gap:10px;
+  margin-bottom:12px;
+}
+
+.toggle button{
+  flex:1;
+  padding:11px 12px;
+  border:none;
+  border-radius:12px;
+  font-weight:600;
+  cursor:pointer;
+  transition:transform .25s ease, box-shadow .25s ease, filter .25s ease;
+}
+
+.toggle button:hover{
+  transform:translateY(-1px);
+}
+
+.active{
+  background:linear-gradient(135deg,var(--green),#15803d);
+  color:#fff;
+  box-shadow:0 10px 22px rgba(22,163,74,.28);
+}
+
+.inactive{
+  background:linear-gradient(135deg,var(--blue),#1d4ed8);
+  color:#fff;
+}
+
+input,button{
+  width:100%;
+  padding:11px 12px;
+  margin-top:10px;
+  border-radius:12px;
+  border:none;
+}
+
+input{
+  background:rgba(15,23,42,.6);
+  border:1px solid rgba(148,163,184,.35);
+  color:#fff;
+  outline:none;
+  transition:border-color .25s ease, box-shadow .25s ease, background .25s ease;
+}
+
+input::placeholder{
+  color:#9db0c8;
+}
+
+input:focus{
+  border-color:#2dd4bf;
+  box-shadow:0 0 0 3px var(--focus), 0 0 18px rgba(45,212,191,.24);
+  background:rgba(15,23,42,.82);
+}
+
+button{
+  font-weight:600;
+  letter-spacing:.2px;
+  cursor:pointer;
+  transition:transform .25s ease, box-shadow .25s ease, filter .25s ease;
+}
+
+button:hover{
+  transform:translateY(-1px);
+}
+
+.primary{
+  background:linear-gradient(135deg,var(--blue),#1d4ed8);
+  color:#fff;
+  box-shadow:0 12px 24px rgba(37,99,235,.28);
+}
+
+.secondary{
+  background:linear-gradient(135deg,var(--teal),#0f766e);
+  color:#fff;
+  box-shadow:0 12px 24px rgba(20,184,166,.24);
+}
+
+video{
+  width:100%;
+  margin-top:12px;
+  border-radius:12px;
+  display:none;
+  border:1px solid rgba(148,163,184,.45);
+  box-shadow:0 10px 24px rgba(2,6,23,.35);
+}
+
+.hidden{
+  display:none;
+}
+
+pre{
+  font-size:12px;
+  line-height:1.45;
+  margin-top:12px;
+  background:rgba(15,23,42,.65);
+  border:1px solid rgba(148,163,184,.3);
+  padding:12px;
+  border-radius:12px;
+  color:#dbeafe;
+  min-height:64px;
+  white-space:pre-wrap;
+  word-break:break-word;
+}
+
+@keyframes floatBlob{
+  from{transform:translate3d(0,0,0) scale(1);}
+  to{transform:translate3d(16px,20px,0) scale(1.06);}
+}
+
+@keyframes enterCard{
+  from{opacity:0;transform:translateY(24px);}
+  to{opacity:1;transform:translateY(0);}
+}
+</style>
+</head>
+
+<body>
+<div class="box">
+
+<h2>Voting System</h2>
+<p class="subtitle">Secure blockchain voting authentication</p>
+
+<div class="toggle">
+  <button id="regBtn" class="active" onclick="setMode('register')">Register</button>
+  <button id="loginBtn" class="inactive" onclick="setMode('login')">Login</button>
+</div>
+
+<input id="email" placeholder="Enter Email">
+<input id="otp" placeholder="Enter OTP">
+
+<button id="sendOtpBtn" class="primary" onclick="sendOtp()">Send OTP</button>
+<button id="verifyOtpBtn" class="primary" onclick="verifyOtp()">Verify OTP</button>
+
+<button id="camBtn" class="secondary hidden" onclick="openCamera()">Open Camera</button>
+<video id="video" autoplay playsinline></video>
+<button id="captureBtn" class="secondary hidden" onclick="captureFace()">Capture Face</button>
+
+<pre id="output">Loading face models...</pre>
+
+</div>
+
+<script>
+const API = "/api/auth";
+const MODEL_URL = "/models";
+
+let mode="register", modelsLoaded=false, stream=null;
+
+function setMode(m){
+  mode=m;
+  regBtn.className = m==="register"?"active":"inactive";
+  loginBtn.className = m==="login"?"active":"inactive";
+
+  if(m==="register"){
+    otp.style.display="block";
+    sendOtpBtn.style.display="block";
+    verifyOtpBtn.style.display="block";
+    camBtn.classList.add("hidden");
+    output.textContent="REGISTER -> OTP -> FACE";
+  }else{
+    otp.style.display="none";
+    sendOtpBtn.style.display="none";
+    verifyOtpBtn.style.display="none";
+    camBtn.classList.remove("hidden");
+    output.textContent="LOGIN -> FACE";
+  }
+
+  video.style.display="none";
+  captureBtn.classList.add("hidden");
+}
+
+window.onload = async ()=>{
+  try{
+    await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+    await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
+    await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
+    modelsLoaded=true;
+    output.textContent="Models loaded successfully";
+  }catch(e){
+    output.textContent="Model load failed";
+    console.error(e);
+  }
+};
+
+async function sendOtp(){
+  const r=await fetch(`${API}/send-otp`,{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({email:email.value})
+  });
+  output.textContent=JSON.stringify(await r.json(),null,2);
+}
+
+async function verifyOtp(){
+  const r=await fetch(`${API}/verify-otp`,{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({email:email.value,otp:otp.value})
+  });
+  const d=await r.json();
+  output.textContent=JSON.stringify(d,null,2);
+  if(d.success) camBtn.classList.remove("hidden");
+}
+
+async function openCamera(){
+  stream=await navigator.mediaDevices.getUserMedia({video:true});
+  video.srcObject=stream;
+  video.style.display="block";
+  captureBtn.classList.remove("hidden");
+}
+
+async function captureFace(){
+  if(!modelsLoaded) return alert("Models not loaded");
+
+  const det = await faceapi
+    .detectSingleFace(video,new faceapi.TinyFaceDetectorOptions())
+    .withFaceLandmarks()
+    .withFaceDescriptor();
+
+  if(!det) return alert("No face detected");
+
+  const endpoint = mode==="register"?"register-face":"login-face";
+  const r=await fetch(`${API}/${endpoint}`,{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({
+      email:email.value,
+      descriptor:Array.from(det.descriptor)
+    })
+  });
+  const d=await r.json();
+  output.textContent=JSON.stringify(d,null,2);
+
+  if(stream) stream.getTracks().forEach(t=>t.stop());
+
+  if(d.success){
+    if(mode==="login"){
+      localStorage.setItem("email",email.value);
+      window.location.href="/vote.html";
+    }else{
+      alert("Face registered successfully");
+    }
+  }else{
+    alert("Face verification failed");
+  }
+}
+</script>
+
+</body>
+</html>
+
