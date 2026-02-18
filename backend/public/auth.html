@@ -37,9 +37,11 @@ body{
   min-height:100vh;
   display:flex;
   justify-content:center;
-  align-items:center;
+  align-items:flex-start;
   background:linear-gradient(140deg,var(--bg-a),var(--bg-b) 52%,var(--bg-c));
-  overflow:hidden;
+  overflow-y:auto;
+  overflow-x:hidden;
+  padding:18px 0;
 }
 
 body::before,
@@ -71,6 +73,7 @@ body::after{
 .box{
   width:min(420px,92vw);
   padding:30px 24px 24px;
+  margin:8px auto;
   border-radius:var(--radius);
   background:var(--card);
   border:1px solid var(--card-border);
@@ -215,6 +218,19 @@ pre{
 @keyframes enterCard{
   from{opacity:0;transform:translateY(24px);}
   to{opacity:1;transform:translateY(0);}
+}
+
+@media (max-width: 640px){
+  body{
+    padding:12px 0 24px;
+  }
+  .box{
+    padding:20px 14px 18px;
+    border-radius:14px;
+  }
+  h2{
+    font-size:1.4rem;
+  }
 }
 </style>
 </head>

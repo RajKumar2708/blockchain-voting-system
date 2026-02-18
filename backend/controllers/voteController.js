@@ -122,21 +122,33 @@ exports.getResults = async (req, res) => {
   try {
     await ensurePartyIndexes();
     const parties = await Party.find();
+    const voteLogs = await User.find({ hasVoted: true })
+      .sort({ votedAt: -1 })
+      .select("email voteTxHash votedAt votedPartyIndex");
+
+    const votesByPartyIndex = {};
+    voteLogs.forEach((log) => {
+      const idx = Number(log.votedPartyIndex);
+      if (Number.isInteger(idx)) {
+        votesByPartyIndex[idx] = (votesByPartyIndex[idx] || 0) + 1;
+      }
+    });
 
     const results = await Promise.all(
       parties.map(async p => {
-        let votes = 0;
+        const dbVotes = votesByPartyIndex[p.partyIndex] || 0;
+        let chainVotes = 0;
         try {
           const count = await votingContract.getVotes(p.partyIndex);
-          votes = Number(count);
+          chainVotes = Number(count);
         } catch (e) {
-          votes = 0;
+          chainVotes = 0;
         }
 
         return {
           name: p.name,
           leader: p.leader,
-          votes
+          votes: Math.max(chainVotes, dbVotes)
         };
       })
     );
@@ -144,9 +156,7 @@ exports.getResults = async (req, res) => {
     res.json({
       success: true,
       results,
-      logs: await User.find({ hasVoted: true })
-        .sort({ votedAt: -1 })
-        .select("email voteTxHash votedAt votedPartyIndex")
+      logs: voteLogs
     });
   } catch (err) {
     res.status(500).json({
