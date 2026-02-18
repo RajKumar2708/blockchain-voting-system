@@ -5,6 +5,41 @@ const faceapi = require("face-api.js");
 
 const otpStore = new Map();
 
+async function sendOtpEmail(to, otp) {
+  const from = (process.env.EMAIL_FROM || process.env.EMAIL_USER || "").trim();
+  const brevoApiKey = (process.env.BREVO_API_KEY || "").trim();
+
+  if (brevoApiKey && from) {
+    const resp = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "api-key": brevoApiKey
+      },
+      body: JSON.stringify({
+        sender: { email: from, name: "Voting System" },
+        to: [{ email: to }],
+        subject: "Voting OTP",
+        textContent: `Your OTP is ${otp}`
+      })
+    });
+
+    if (!resp.ok) {
+      const t = await resp.text();
+      throw new Error(`Brevo API failed: ${resp.status} ${t}`);
+    }
+    return "brevo_api";
+  }
+
+  await transporter.sendMail({
+    from,
+    to,
+    subject: "Voting OTP",
+    text: `Your OTP is ${otp}`
+  });
+  return "smtp";
+}
+
 /* ===================== SEND OTP ===================== */
 exports.sendOtp = async (req, res) => {
   try {
@@ -29,14 +64,9 @@ exports.sendOtp = async (req, res) => {
     const otp = Math.floor(100000 + Math.random() * 900000);
     otpStore.set(normalizedEmail, otp);
     try {
-      await transporter.sendMail({
-        from: (process.env.EMAIL_FROM || process.env.EMAIL_USER || "").trim(),
-        to: normalizedEmail,
-        subject: "Voting OTP",
-        text: `Your OTP is ${otp}`
-      });
+      const via = await sendOtpEmail(normalizedEmail, otp);
 
-      return res.json({ success: true, message: "OTP sent" });
+      return res.json({ success: true, message: "OTP sent", delivery: via });
     } catch (mailErr) {
       // Fallback for environments where SMTP is blocked/times out.
       return res.json({
