@@ -461,7 +461,7 @@ button:hover{
         </div>
         <div class="detail-row">
           <div class="label">Network</div>
-          <div class="value">Hardhat Local</div>
+          <div class="value">Sepolia</div>
         </div>
       </div>
     </div>
@@ -503,6 +503,10 @@ async function hardhatRpc(method, params) {
 function hexToNumber(hex) {
   if (!hex) return 0;
   return parseInt(hex, 16);
+}
+
+function getExplorerTxUrl(hash) {
+  return `https://sepolia.etherscan.io/tx/${hash}`;
 }
 
 function renderCharts(resultsData, voteLogs) {
@@ -682,12 +686,14 @@ async function loadResults(){
         const txHtml = fullHash !== "N/A"
           ? `
             <div class="tx-cell">
-              <button
-                type="button"
+              <a
                 class="tx tx-link"
                 title="${fullHash}"
-                onclick="openTxModal('${fullHash}')"
-              >${shortHash}</button>
+                href="${getExplorerTxUrl(fullHash)}"
+                target="_blank"
+                rel="noopener noreferrer"
+              >${shortHash}</a>
+              <button class="copy-btn" type="button" onclick="openTxModal('${fullHash}')">Details</button>
               <button class="copy-btn" type="button" onclick="copyHash('${fullHash}')">Copy</button>
             </div>
           `
