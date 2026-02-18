@@ -176,13 +176,17 @@ button:hover{
   box-shadow:0 12px 24px rgba(20,184,166,.24);
 }
 
-video{
+video,
+canvas{
   width:100%;
   margin-top:12px;
   border-radius:12px;
-  display:none;
   border:1px solid rgba(148,163,184,.45);
   box-shadow:0 10px 24px rgba(2,6,23,.35);
+}
+
+video{
+  display:none;
 }
 
 .hidden{
@@ -234,7 +238,9 @@ pre{
 
 <button id="camBtn" class="secondary hidden" onclick="openCamera()">Open Camera</button>
 <video id="video" autoplay playsinline></video>
+<canvas id="snapshot" class="hidden"></canvas>
 <button id="captureBtn" class="secondary hidden" onclick="captureFace()">Capture Face</button>
+<button id="retakeBtn" class="secondary hidden" onclick="retakeCapture()">Retake Image</button>
 
 <pre id="output">Loading face models...</pre>
 
@@ -285,7 +291,9 @@ function setMode(m){
   }
 
   video.style.display="none";
+  snapshot.classList.add("hidden");
   captureBtn.classList.add("hidden");
+  retakeBtn.classList.add("hidden");
 }
 
 window.onload = async ()=>{
@@ -334,7 +342,12 @@ async function verifyOtp(){
     }, 20000);
     const d=await parseResponse(r);
     output.textContent=JSON.stringify(d,null,2);
-    if(d.success) camBtn.classList.remove("hidden");
+    if(d.success){
+      otp.style.display="none";
+      sendOtpBtn.style.display="none";
+      verifyOtpBtn.style.display="none";
+      camBtn.classList.remove("hidden");
+    }
   } catch (err) {
     output.textContent = JSON.stringify({
       success: false,
@@ -347,21 +360,74 @@ async function verifyOtp(){
 }
 
 async function openCamera(){
-  stream=await navigator.mediaDevices.getUserMedia({video:true});
+  stream=await navigator.mediaDevices.getUserMedia({
+    video:{
+      facingMode:"user",
+      width:{ ideal:640 },
+      height:{ ideal:480 }
+    }
+  });
   video.srcObject=stream;
+  await video.play();
   video.style.display="block";
+  snapshot.classList.add("hidden");
   captureBtn.classList.remove("hidden");
+  retakeBtn.classList.add("hidden");
+  output.textContent = "Camera ready. Align face and capture.";
+}
+
+function wait(ms){
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function detectFaceWithRetries(maxAttempts = 8){
+  for(let i=0;i<maxAttempts;i++){
+    const det = await faceapi
+      .detectSingleFace(
+        video,
+        new faceapi.TinyFaceDetectorOptions({
+          inputSize: 416,
+          scoreThreshold: 0.35
+        })
+      )
+      .withFaceLandmarks()
+      .withFaceDescriptor();
+
+    if(det) return det;
+    await wait(250);
+  }
+  return null;
+}
+
+function retakeCapture(){
+  snapshot.classList.add("hidden");
+  retakeBtn.classList.add("hidden");
+  captureBtn.classList.remove("hidden");
+  output.textContent = "Retake: center your face and capture again.";
 }
 
 async function captureFace(){
   if(!modelsLoaded) return alert("Models not loaded");
 
-  const det = await faceapi
-    .detectSingleFace(video,new faceapi.TinyFaceDetectorOptions())
-    .withFaceLandmarks()
-    .withFaceDescriptor();
+  output.textContent = "Detecting face... hold still.";
+  const det = await detectFaceWithRetries();
 
-  if(!det) return alert("No face detected");
+  if(!det){
+    output.textContent = JSON.stringify({
+      success:false,
+      message:"Face not detected. Improve lighting and use Retake Image."
+    }, null, 2);
+    retakeBtn.classList.remove("hidden");
+    return;
+  }
+
+  const ctx = snapshot.getContext("2d");
+  snapshot.width = video.videoWidth || 640;
+  snapshot.height = video.videoHeight || 480;
+  ctx.drawImage(video, 0, 0, snapshot.width, snapshot.height);
+  snapshot.classList.remove("hidden");
+  captureBtn.classList.add("hidden");
+  retakeBtn.classList.remove("hidden");
 
   const endpoint = mode==="register"?"register-face":"login-face";
   const r=await fetch(`${API}/${endpoint}`,{
@@ -392,4 +458,3 @@ async function captureFace(){
 
 </body>
 </html>
-
