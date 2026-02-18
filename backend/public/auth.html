@@ -239,8 +239,8 @@ pre{
 <button id="camBtn" class="secondary hidden" onclick="openCamera()">Open Camera</button>
 <video id="video" autoplay playsinline></video>
 <canvas id="snapshot" class="hidden"></canvas>
-<button id="captureBtn" class="secondary hidden" onclick="captureFace()">Capture Face</button>
-<button id="retakeBtn" class="secondary hidden" onclick="retakeCapture()">Retake Image</button>
+<button id="captureBtn" class="secondary hidden" onclick="captureFace()">Capture Photo</button>
+<button id="faceSubmitBtn" class="primary hidden" onclick="submitFace()">Register Face</button>
 
 <pre id="output">Loading face models...</pre>
 
@@ -251,6 +251,8 @@ const API = "/api/auth";
 const MODEL_URL = "/models";
 
 let mode="register", modelsLoaded=false, stream=null;
+let capturedDescriptor = null;
+let hasSnapshot = false;
 
 async function parseResponse(r) {
   const text = await r.text();
@@ -269,6 +271,24 @@ async function fetchWithTimeout(url, options, timeoutMs = 20000) {
   } finally {
     clearTimeout(timeout);
   }
+}
+
+function stopCamera(){
+  if(stream){
+    stream.getTracks().forEach(t => t.stop());
+    stream = null;
+  }
+}
+
+function resetCaptureState(){
+  capturedDescriptor = null;
+  hasSnapshot = false;
+  video.style.display = "none";
+  snapshot.classList.add("hidden");
+  captureBtn.classList.add("hidden");
+  faceSubmitBtn.classList.add("hidden");
+  captureBtn.textContent = "Capture Photo";
+  faceSubmitBtn.textContent = mode === "register" ? "Register Face" : "Login Face";
 }
 
 function setMode(m){
@@ -290,10 +310,8 @@ function setMode(m){
     output.textContent="LOGIN -> FACE";
   }
 
-  video.style.display="none";
-  snapshot.classList.add("hidden");
-  captureBtn.classList.add("hidden");
-  retakeBtn.classList.add("hidden");
+  stopCamera();
+  resetCaptureState();
 }
 
 window.onload = async ()=>{
@@ -369,11 +387,15 @@ async function openCamera(){
   });
   video.srcObject=stream;
   await video.play();
+  capturedDescriptor = null;
+  hasSnapshot = false;
   video.style.display="block";
   snapshot.classList.add("hidden");
   captureBtn.classList.remove("hidden");
-  retakeBtn.classList.add("hidden");
-  output.textContent = "Camera ready. Align face and capture.";
+  faceSubmitBtn.classList.add("hidden");
+  captureBtn.textContent = "Capture Photo";
+  faceSubmitBtn.textContent = mode === "register" ? "Register Face" : "Login Face";
+  output.textContent = "Camera ready. Capture photo, then submit.";
 }
 
 function wait(ms){
@@ -399,15 +421,19 @@ async function detectFaceWithRetries(maxAttempts = 8){
   return null;
 }
 
-function retakeCapture(){
-  snapshot.classList.add("hidden");
-  retakeBtn.classList.add("hidden");
-  captureBtn.classList.remove("hidden");
-  output.textContent = "Retake: center your face and capture again.";
-}
-
 async function captureFace(){
   if(!modelsLoaded) return alert("Models not loaded");
+
+  if(hasSnapshot){
+    hasSnapshot = false;
+    capturedDescriptor = null;
+    snapshot.classList.add("hidden");
+    video.style.display = "block";
+    faceSubmitBtn.classList.add("hidden");
+    captureBtn.textContent = "Capture Photo";
+    output.textContent = "Retake mode: capture photo again.";
+    return;
+  }
 
   output.textContent = "Detecting face... hold still.";
   const det = await detectFaceWithRetries();
@@ -415,9 +441,8 @@ async function captureFace(){
   if(!det){
     output.textContent = JSON.stringify({
       success:false,
-      message:"Face not detected. Improve lighting and use Retake Image."
+      message:"Face not detected. Improve lighting and keep face centered."
     }, null, 2);
-    retakeBtn.classList.remove("hidden");
     return;
   }
 
@@ -425,9 +450,25 @@ async function captureFace(){
   snapshot.width = video.videoWidth || 640;
   snapshot.height = video.videoHeight || 480;
   ctx.drawImage(video, 0, 0, snapshot.width, snapshot.height);
+
+  capturedDescriptor = Array.from(det.descriptor);
+  hasSnapshot = true;
+  video.style.display = "none";
   snapshot.classList.remove("hidden");
-  captureBtn.classList.add("hidden");
-  retakeBtn.classList.remove("hidden");
+  captureBtn.textContent = "Retake Photo";
+  faceSubmitBtn.classList.remove("hidden");
+  faceSubmitBtn.textContent = mode === "register" ? "Register Face" : "Login Face";
+  output.textContent = "Photo captured. Click submit to continue.";
+}
+
+async function submitFace(){
+  if(!capturedDescriptor){
+    output.textContent = JSON.stringify({
+      success:false,
+      message:"Capture photo first before submitting."
+    }, null, 2);
+    return;
+  }
 
   const endpoint = mode==="register"?"register-face":"login-face";
   const r=await fetch(`${API}/${endpoint}`,{
@@ -435,19 +476,22 @@ async function captureFace(){
     headers:{"Content-Type":"application/json"},
     body:JSON.stringify({
       email:email.value,
-      descriptor:Array.from(det.descriptor)
+      descriptor:capturedDescriptor
     })
   });
-  const d=await r.json();
-  output.textContent=JSON.stringify(d,null,2);
 
-  if(stream) stream.getTracks().forEach(t=>t.stop());
+  const d=await parseResponse(r);
+  output.textContent=JSON.stringify(d,null,2);
 
   if(d.success){
     if(mode==="login"){
+      stopCamera();
       localStorage.setItem("email",email.value);
       window.location.href="/vote.html";
     }else{
+      stopCamera();
+      resetCaptureState();
+      camBtn.classList.remove("hidden");
       alert("Face registered successfully");
     }
   }else{
