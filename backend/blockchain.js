@@ -1,32 +1,17 @@
 const { ethers } = require("ethers");
-const fs = require("fs");
-const path = require("path");
+const VotingABI = require("./config/VotingABI.json");
 
-const provider = new ethers.providers.JsonRpcProvider(
-  "http://127.0.0.1:8545"
-);
-const signer = provider.getSigner(0);
-
-const contractPath = path.join(
-  __dirname,
-  "..",
-  "blockchain",
-  "artifacts",
-  "contracts",
-  "Voting.sol",
-  "Voting.json"
-);
-const contractJson = JSON.parse(fs.readFileSync(contractPath, "utf8"));
-
+const RPC_URL = process.env.RPC_URL;
+const PRIVATE_KEY = process.env.PRIVATE_KEY;
 const CONTRACT_ADDRESS = process.env.CONTRACT_ADDRESS;
-if (!CONTRACT_ADDRESS) {
-  throw new Error("CONTRACT_ADDRESS is not set in environment");
+
+if (!RPC_URL || !PRIVATE_KEY || !CONTRACT_ADDRESS) {
+  throw new Error("Missing RPC_URL / PRIVATE_KEY / CONTRACT_ADDRESS env vars");
 }
 
-const votingContract = new ethers.Contract(
-  CONTRACT_ADDRESS,
-  contractJson.abi,
-  signer
-);
+const provider = new ethers.providers.JsonRpcProvider(RPC_URL);
+const wallet = new ethers.Wallet(PRIVATE_KEY, provider);
+
+const votingContract = new ethers.Contract(CONTRACT_ADDRESS, VotingABI, wallet);
 
 module.exports = votingContract;
