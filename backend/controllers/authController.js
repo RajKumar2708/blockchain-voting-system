@@ -28,7 +28,11 @@ async function sendOtpEmail(to, otp) {
       const t = await resp.text();
       throw new Error(`Brevo API failed: ${resp.status} ${t}`);
     }
-    return "brevo_api";
+    const payload = await resp.json().catch(() => ({}));
+    return {
+      delivery: "brevo_api",
+      messageId: payload.messageId || null
+    };
   }
 
   await transporter.sendMail({
@@ -37,7 +41,10 @@ async function sendOtpEmail(to, otp) {
     subject: "Voting OTP",
     text: `Your OTP is ${otp}`
   });
-  return "smtp";
+  return {
+    delivery: "smtp",
+    messageId: null
+  };
 }
 
 /* ===================== SEND OTP ===================== */
@@ -64,9 +71,14 @@ exports.sendOtp = async (req, res) => {
     const otp = Math.floor(100000 + Math.random() * 900000);
     otpStore.set(normalizedEmail, otp);
     try {
-      const via = await sendOtpEmail(normalizedEmail, otp);
+      const sent = await sendOtpEmail(normalizedEmail, otp);
 
-      return res.json({ success: true, message: "OTP sent", delivery: via });
+      return res.json({
+        success: true,
+        message: "OTP sent",
+        delivery: sent.delivery,
+        messageId: sent.messageId
+      });
     } catch (mailErr) {
       // Fallback for environments where SMTP is blocked/times out.
       return res.json({
