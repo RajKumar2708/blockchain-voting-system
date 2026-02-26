@@ -484,27 +484,6 @@ async function copyHash(hash){
   } catch (e) {}
 }
 
-async function hardhatRpc(method, params) {
-  const res = await fetch("http://127.0.0.1:8545", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      jsonrpc: "2.0",
-      id: Date.now(),
-      method,
-      params
-    })
-  });
-  const data = await res.json();
-  if (data.error) throw new Error(data.error.message || "RPC error");
-  return data.result;
-}
-
-function hexToNumber(hex) {
-  if (!hex) return 0;
-  return parseInt(hex, 16);
-}
-
 function getExplorerTxUrl(hash) {
   return `https://sepolia.etherscan.io/tx/${hash}`;
 }
@@ -609,21 +588,23 @@ async function openTxModal(hash) {
   txModalBackdrop.style.display = "flex";
 
   try {
-    const receipt = await hardhatRpc("eth_getTransactionReceipt", [hash]);
-    if (!receipt) {
+    const res = await fetch(`/api/vote/tx/${encodeURIComponent(hash)}`);
+    const data = await res.json();
+
+    if (!res.ok || !data.success) {
+      throw new Error(data.message || "Failed to fetch transaction details");
+    }
+
+    if (data.pending) {
       modalBlock.textContent = "Pending";
       modalGas.textContent = "Pending";
       modalStatus.textContent = "Pending";
       return;
     }
 
-    const blockNo = hexToNumber(receipt.blockNumber);
-    const gasUsed = hexToNumber(receipt.gasUsed);
-    const ok = receipt.status === "0x1";
-
-    modalBlock.textContent = String(blockNo);
-    modalGas.textContent = String(gasUsed);
-    modalStatus.innerHTML = ok
+    modalBlock.textContent = String(data.blockNumber);
+    modalGas.textContent = String(data.gasUsed);
+    modalStatus.innerHTML = data.status === "success"
       ? '<span class="status-ok">Success</span>'
       : '<span class="status-fail">Failed</span>';
   } catch (err) {
