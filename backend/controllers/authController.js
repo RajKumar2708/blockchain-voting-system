@@ -205,7 +205,7 @@ exports.loginWithFace = async (req, res) => {
     const distance = faceapi.euclideanDistance(stored, incoming);
     console.log("FACE DISTANCE:", distance);
 
-    const THRESHOLD = 0.35; // 🔒 STRICT
+    const THRESHOLD = Number(process.env.FACE_MATCH_THRESHOLD || 0.45);
 
     if (distance > THRESHOLD) {
       return res.status(401).json({
@@ -228,3 +228,5 @@ exports.loginWithFace = async (req, res) => {
     });
   }
 };
+
+

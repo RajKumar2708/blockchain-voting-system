@@ -269,6 +269,8 @@ const MODEL_URL = "/models";
 let mode="register", modelsLoaded=false, stream=null;
 let capturedDescriptor = null;
 let hasSnapshot = false;
+let otpCooldown = 0;
+let otpTimer = null;
 
 async function parseResponse(r) {
   const text = await r.text();
@@ -287,6 +289,27 @@ async function fetchWithTimeout(url, options, timeoutMs = 20000) {
   } finally {
     clearTimeout(timeout);
   }
+}
+
+function startOtpCooldown(seconds = 60) {
+  otpCooldown = seconds;
+  sendOtpBtn.disabled = true;
+  sendOtpBtn.textContent = "Resend OTP in 01:00";
+
+  if (otpTimer) clearInterval(otpTimer);
+  otpTimer = setInterval(() => {
+    otpCooldown -= 1;
+    if (otpCooldown <= 0) {
+      clearInterval(otpTimer);
+      otpTimer = null;
+      sendOtpBtn.disabled = false;
+      sendOtpBtn.textContent = "Send OTP";
+      return;
+    }
+    const min = Math.floor(otpCooldown / 60);
+    const sec = otpCooldown % 60;
+    sendOtpBtn.textContent = `Resend OTP in ${String(min).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
+  }, 1000);
 }
 
 function stopCamera(){
@@ -344,6 +367,9 @@ window.onload = async ()=>{
 };
 
 async function sendOtp(){
+  if (otpCooldown > 0) {
+    return;
+  }
   try {
     sendOtpBtn.disabled = true;
     output.textContent = "Sending OTP...";
@@ -354,6 +380,11 @@ async function sendOtp(){
     }, 20000);
     const data = await parseResponse(r);
     output.textContent=JSON.stringify(data,null,2);
+    if (data.success) {
+      startOtpCooldown(60);
+    } else {
+      sendOtpBtn.disabled = false;
+    }
   } catch (err) {
     output.textContent = JSON.stringify({
       success: false,
@@ -361,6 +392,7 @@ async function sendOtp(){
       error: err.message
     }, null, 2);
   } finally {
+    if (otpCooldown > 0) return;
     sendOtpBtn.disabled = false;
   }
 }

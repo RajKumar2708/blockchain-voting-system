@@ -37,6 +37,44 @@ exports.getParties = async (req, res) => {
   }
 };
 
+/* ================= USER VOTE STATUS ================= */
+exports.getVoteStatus = async (req, res) => {
+  try {
+    const normalizedEmail = (req.query.email || "").trim().toLowerCase();
+    if (!normalizedEmail) {
+      return res.status(400).json({
+        success: false,
+        message: "Email query param is required"
+      });
+    }
+
+    const user = await User.findOne({ email: normalizedEmail });
+    if (!user) {
+      return res.json({
+        success: true,
+        exists: false,
+        hasVoted: false,
+        canVote: false,
+        message: "User not found"
+      });
+    }
+
+    const canVote = !!(user.allowedToVote && user.otpVerified && user.faceVerified && !user.hasVoted);
+    return res.json({
+      success: true,
+      exists: true,
+      hasVoted: !!user.hasVoted,
+      canVote,
+      message: user.hasVoted ? "You have already voted" : "Vote status loaded"
+    });
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      message: "Failed to load vote status"
+    });
+  }
+};
+
 /* ================= CAST VOTE ================= */
 exports.castVote = async (req, res) => {
   try {

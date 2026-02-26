@@ -75,6 +75,16 @@ async function loadStatus(){
 /* ===== LOAD PARTIES ===== */
 async function loadParties(){
   try{
+    const voteStatusRes = await fetch(`/api/vote/status?email=${encodeURIComponent(email)}`);
+    const voteStatus = await voteStatusRes.json();
+
+    if (voteStatus.success && voteStatus.hasVoted) {
+      status.textContent = "You have already voted";
+      partyList.innerHTML = "Voting already completed for this account.";
+      msg.textContent = "You cannot cast another vote.";
+      return;
+    }
+
     const active = await loadStatus();
     if(!active){
       partyList.innerHTML = "Voting is closed";
@@ -106,6 +116,14 @@ async function loadParties(){
 /* ===== CAST VOTE ===== */
 async function castVote(partyId){
   msg.textContent = "Submitting your vote...";
+
+  const voteStatusRes = await fetch(`/api/vote/status?email=${encodeURIComponent(email)}`);
+  const voteStatus = await voteStatusRes.json();
+  if (voteStatus.success && voteStatus.hasVoted) {
+    msg.textContent = "You have already voted";
+    partyList.innerHTML = "Voting already completed for this account.";
+    return;
+  }
 
   const res = await fetch("/api/vote/cast",{
     method:"POST",
